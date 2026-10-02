@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F5C4D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="領収書">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="icon" href="/static/icon-192.png">
+<title>領収書メール</title>
+<style>
+  :root {
+    --bg: #F4F5F2; --card: #FFFFFF; --ink: #1D2421; --sub: #66706B; --line: #E1E4DF;
+    --accent: #0F5C4D; --accent-ink: #FFFFFF; --warn: #B4531A; --ok: #1E7A43; --danger: #B3261E;
+    --taxi: #E3A008; --shinkansen: #2563EB; --marine: #0E9AA7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121614; --card: #1C211F; --ink: #E8ECE9; --sub: #9AA49F; --line: #2D3431;
+      --accent: #3FB394; --accent-ink: #0B1210; --warn: #F0A06B; --ok: #6CCB8F; --danger: #F2847C;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+  body { padding: env(safe-area-inset-top) 0 calc(110px + env(safe-area-inset-bottom)); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 6px; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .02em; }
+  .icon-btn { background: none; border: 0; font-size: 22px; padding: 6px 8px; border-radius: 10px; }
+  .icon-btn:active { background: var(--line); }
+
+  .month { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 4px; }
+  .month b { font-size: 22px; }
+  .month .nav { border: 1px solid var(--line); background: var(--card); border-radius: 12px;
+    width: 44px; height: 44px; font-size: 18px; }
+  .trip { text-align: center; color: var(--sub); font-size: 14px; }
+  .status { display: flex; justify-content: center; margin: 10px 0 14px; }
+  .pill { font-size: 13px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); }
+  .pill.ok { color: var(--ok); border-color: currentColor; }
+  .pill.warn { color: var(--warn); border-color: currentColor; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .card-head { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .card-head h2 { font-size: 16px; margin: 0; flex: 1; }
+  .count { font-size: 13px; color: var(--sub); }
+  .count.zero { color: var(--warn); }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin-top: 12px; }
+  .thumb { position: relative; aspect-ratio: 3/4; border-radius: 10px; overflow: hidden; border: 1px solid var(--line);
+    background: var(--bg); padding: 0; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .cap { position: absolute; left: 0; right: 0; bottom: 0; font-size: 11px; padding: 3px 5px;
+    background: rgba(0,0,0,.6); color: #fff; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .thumb .cap.nodate { background: rgba(180,83,26,.9); }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn { flex: 1; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 11px 10px; font-size: 15px; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .45; }
+  .btn:active:not(:disabled) { filter: brightness(.94); }
+
+  .sent-log { font-size: 13px; color: var(--sub); margin: 4px 2px 0; }
+  .sent-log div { padding: 2px 0; }
+
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); z-index: 5; }
+  .bar .wrap { padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .bar .to { font-size: 12px; color: var(--sub); text-align: center; overflow-wrap: anywhere; }
+  .bar .btn { padding: 14px; font-size: 16px; }
+
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 10; display: none; }
+  .sheet-bg.open { display: block; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow-y: auto; background: var(--card);
+    border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); z-index: 11;
+    transform: translateY(105%); transition: transform .2s ease; }
+  .sheet.open { transform: none; }
+  .sheet .inner { max-width: 560px; margin: 0 auto; }
+  .sheet h3 { margin: 0 0 12px; font-size: 17px; }
+  .sheet img.big { width: 100%; max-height: 40vh; object-fit: contain; background: #000; border-radius: 12px; }
+  label.f { display: block; font-size: 13px; color: var(--sub); margin: 14px 0 6px; }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button { flex: 1; min-width: 70px; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 4px; font-size: 14px; }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  input.t, textarea.t { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 11px 12px; font-size: 16px; }
+  .yen { position: relative; }
+  .yen span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--sub); }
+  pre.mail { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 13px; line-height: 1.6; margin: 0; font-family: inherit; }
+  .kv { font-size: 14px; margin: 4px 0; overflow-wrap: anywhere; }
+  .kv span { color: var(--sub); display: inline-block; min-width: 3.5em; }
+  .note { font-size: 12px; color: var(--sub); margin-top: 6px; line-height: 1.6; }
+  .warnbox { font-size: 13px; color: var(--warn); border: 1px solid currentColor; border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
+
+  .toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 30;
+    max-width: calc(100% - 32px); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.show { opacity: 1; }
+  .busy { position: fixed; inset: 0; background: rgba(0,0,0,.25); z-index: 25; display: none; align-items: center; justify-content: center; }
+  .busy.show { display: flex; }
+  .busy div { background: var(--card); padding: 14px 20px; border-radius: 12px; font-size: 15px; }
+
+  #login { display: none; padding-top: 18vh; text-align: center; }
+  #login input { max-width: 280px; margin: 16px auto 10px; display: block; }
+  #login .btn { max-width: 280px; margin: 0 auto; display: block; width: 100%; }
+</style>
+</head>
+<body>
+<div id="login" class="wrap">
+  <h1>領収書メール</h1>
+  <input id="pw" class="t" type="password" placeholder="パスワード" autocomplete="current-password">
+  <button class="btn primary" id="loginBtn">ログイン</button>
+</div>
+
+<div id="app" class="wrap" hidden>
+  <header>
+    <h1>🧾 領収書メール</h1>
+    <button class="icon-btn" id="openSettings" aria-label="設定">⚙</button>
+  </header>
+  <div class="month">
+    <button class="nav" id="prev" aria-label="前の月">◀</button>
+    <b id="ymLabel"></b>
+    <button class="nav" id="next" aria-label="次の月">▶</button>
+  </div>
+  <div class="trip" id="trip"></div>
+  <div class="status" id="status"></div>
+  <div id="cards"></div>
+  <div class="sent-log" id="sentLog"></div>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="wrap">
+    <div class="to" id="toLine"></div>
+    <button class="btn primary" id="sendBtn">メールで送る</button>
+  </div>
+</div>
+
+<input type="file" id="camIn" accept="image/*" capture="environment" hidden>
+<input type="file" id="libIn" accept="image/*" multiple hidden>
+
+<div class="sheet-bg" id="sheetBg"></div>
+
+<!-- 1 枚の詳細 -->
+<div class="sheet" id="itemSheet"><div class="inner">
+  <img class="big" id="itemImg" alt="">
+  <label class="f">種類</label>
+  <div class="seg" id="itemKind"></div>
+  <label class="f">日付</label>
+  <div class="seg" id="itemDay"></div>
+  <label class="f">金額（任意・メール本文に載ります）</label>
+  <div class="yen"><input class="t" id="itemAmount" inputmode="numeric" placeholder="例 1520"><span>円</span></div>
+  <label class="f">メモ（任意）</label>
+  <input class="t" id="itemNote" placeholder="例 岡山駅→病院">
+  <div class="actions">
+    <button class="btn danger" id="itemDel">削除</button>
+    <button class="btn primary" id="itemDone">閉じる</button>
+  </div>
+</div></div>
+
+<!-- 送信前の確認 -->
+<div class="sheet" id="sendSheet"><div class="inner">
+  <h3>この内容で送りますか？</h3>
+  <div class="kv"><span>宛先</span><b id="pvTo"></b></div>
+  <div class="kv" id="pvCcRow"><span>CC</span><span id="pvCc"></span></div>
+  <div class="kv"><span>件名</span><span id="pvSubject"></span></div>
+  <label class="f">本文</label>
+  <pre class="mail" id="pvBody"></pre>
+  <div class="note" id="pvSize"></div>
+  <div class="warnbox" id="pvWarn" hidden></div>
+  <div class="actions">
+    <button class="btn" id="sendCancel">やめる</button>
+    <button class="btn primary" id="sendGo">送信する</button>
+  </div>
+</div></div>
+
+<!-- 設定 -->
+<div class="sheet" id="setSheet"><div class="inner">
+  <h3>設定</h3>
+  <label class="f">送り先メールアドレス（複数はカンマ区切り）</label>
+  <input class="t" id="setTo" type="email" multiple placeholder="keiri@example.com" autocomplete="off">
+  <label class="f">CC（任意・自分にも控えを送るなど）</label>
+  <input class="t" id="setCc" type="email" multiple placeholder="" autocomplete="off">
+  <label class="f">差出人の名前（本文の「〇〇です。」に使います）</label>
+  <input class="t" id="setName" placeholder="山田 太郎" autocomplete="name">
+  <div class="actions"><button class="btn primary" id="setSave">保存</button></div>
+  <label class="f">通知（出張初日の朝・月曜夜〜未送信の間）</label>
+  <div class="actions">
+    <button class="btn" id="pushOn">通知を有効にする</button>
+    <button class="btn" id="pushTest">テスト通知</button>
+  </div>
+  <div class="note" id="mailMode"></div>
+  <div class="actions"><button class="btn" id="setClose">閉じる</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<div class="busy" id="busy"><div id="busyText">処理中…</div></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const COLORS = { taxi: "var(--taxi)", shinkansen: "var(--shinkansen)", marine: "var(--marine)" };
+let KINDS = {}, cur = null, month = null, settings = {}, mailMode = "", target = null, openItem = null;
+
+function toast(msg, ms = 2600) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), ms);
+}
+function busy(on, text = "処理中…") { $("busyText").textContent = text; $("busy").classList.toggle("show", on); }
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (r.status === 401) { showLogin(); throw new Error("ログインしてください"); }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || `エラー ${r.status}`);
+  return data;
+}
+const json = (method, body) => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+function showLogin() { $("app").hidden = true; $("bar").hidden = true; $("login").style.display = "block"; }
+$("loginBtn").onclick = async () => {
+  try { await api("/api/login", json("POST", { password: $("pw").value })); $("login").style.display = "none"; boot(); }
+  catch (e) { toast(e.message); }
+};
+$("pw").onkeydown = (e) => { if (e.key === "Enter") $("loginBtn").click(); };
+
+// ---------------------------------------------------------------- 表示
+function ymShift(ym, d) {
+  let [y, m] = ym.split("-").map(Number); m += d;
+  if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+function dayLabel(iso) { const d = month.days.find((x) => x.iso === iso); return d ? d.label : null; }
+function fmtAt(s) { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; }
+
+async function loadMonth(ym) {
+  cur = ym;
+  month = await api(`/api/month/${ym}`);
+  render();
+}
+
+function render() {
+  const [y, m] = cur.split("-").map(Number);
+  $("ymLabel").textContent = `${y}年${m}月`;
+  $("trip").textContent = `出張：${month.days[0].label} 〜 ${month.days[2].label}`;
+  const last = month.sent[month.sent.length - 1];
+  $("status").innerHTML = last
+    ? `<span class="pill ok">送信済み ${fmtAt(last.at)}</span>`
+    : month.items.length ? `<span class="pill warn">未送信・${month.items.length} 枚</span>` : `<span class="pill">まだ撮影していません</span>`;
+
+  const cards = $("cards"); cards.innerHTML = "";
+  for (const [k, label] of Object.entries(KINDS)) {
+    const items = month.items.filter((i) => i.kind === k);
+    const c = document.createElement("div"); c.className = "card";
+    c.innerHTML = `
+      <div class="card-head"><span class="dot" style="background:${COLORS[k]}"></span><h2>${label}</h2>
+        <span class="count ${items.length ? "" : "zero"}">${items.length ? items.length + " 枚" : "未撮影"}</span></div>
+      <div class="thumbs"></div>
+      <div class="actions"><button class="btn primary" data-cam>📷 撮影</button><button class="btn" data-lib>🖼 写真から</button></div>`;
+    const th = c.querySelector(".thumbs");
+    if (!items.length) th.remove();
+    for (const it of items) {
+      const b = document.createElement("button"); b.className = "thumb";
+      const dl = it.day ? dayLabel(it.day) : null;
+      const cap = [dl || "日付なし", it.amount ? it.amount.toLocaleString() + "円" : ""].filter(Boolean).join(" ");
+      b.innerHTML = `<img loading="lazy" src="/img/${it.file}" alt=""><div class="cap ${dl ? "" : "nodate"}">${cap}</div>`;
+      b.onclick = () => openItemSheet(it.id);
+      th.appendChild(b);
+    }
+    c.querySelector("[data-cam]").onclick = () => { target = k; $("camIn").click(); };
+    c.querySelector("[data-lib]").onclick = () => { target = k; $("libIn").click(); };
+    cards.appendChild(c);
+  }
+
+  $("sentLog").innerHTML = month.sent.map((s) => `<div>✉ ${fmtAt(s.at)} に ${s.count} 枚送信 → ${s.to}${s.mode === "outbox" ? "（テスト保存）" : ""}</div>`).join("");
+  $("bar").hidden = false;
+  $("toLine").textContent = settings.to ? `宛先：${settings.to}` : "宛先が未設定です（⚙ から設定）";
+  $("sendBtn").disabled = !month.items.length;
+  $("sendBtn").textContent = month.items.length ? `${month.items.length} 枚をメールで送る${last ? "（再送）" : ""}` : "メールで送る";
+}
+
+// ---------------------------------------------------------------- 撮影・アップロード
+async function shrink(file) {
+  // 端末側で長辺 2000px の JPEG にしてから送る（通信量を減らす）
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const s = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(bmp.width * s); cv.height = Math.round(bmp.height * s);
+    cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+    return await new Promise((res) => cv.toBlob((b) => res(b || file), "image/jpeg", 0.88));
+  } catch { return file; }
+}
+
+async function upload(files) {
+  if (!files.length || !target) return;
+  const ym = cur, kind = target;
+  let lastId = null;
+  try {
+    for (let i = 0; i < files.length; i++) {
+      busy(true, files.length > 1 ? `アップロード中… ${i + 1}/${files.length}` : "アップロード中…");
+      const fd = new FormData();
+      fd.append("kind", kind);
+      fd.append("photo", await shrink(files[i]), "receipt.jpg");
+      const before = new Set(month.items.map((x) => x.id));
+      month = await api(`/api/month/${ym}/items`, { method: "POST", body: fd });
+      lastId = (month.items.find((x) => !before.has(x.id)) || {}).id;
+    }
+    render();
+    if (files.length === 1 && lastId) openItemSheet(lastId); else toast(`${files.length} 枚追加しました`);
+  } catch (e) { toast(e.message); }
+  finally { busy(false); }
+}
+$("camIn").onchange = (e) => { upload([...e.target.files]); e.target.value = ""; };
+$("libIn").onchange = (e) => { upload([...e.target.files]); e.target.value = ""; };
+
+// ---------------------------------------------------------------- シート
+function openSheet(id) { $("sheetBg").classList.add("open"); $(id).classList.add("open"); }
+function closeSheets() {
+  document.querySelectorAll(".sheet.open").forEach((s) => s.classList.remove("open"));
+  $("sheetBg").classList.remove("open");
+}
+$("sheetBg").onclick = () => { if ($("itemSheet").classList.contains("open")) saveItem().finally(closeSheets); else closeSheets(); };
+
+function seg(el, options, value, onPick) {
+  el.innerHTML = "";
+  for (const [v, label] of options) {
+    const b = document.createElement("button"); b.textContent = label; b.className = v === value ? "on" : "";
+    b.onclick = () => { [...el.children].forEach((x) => x.classList.remove("on")); b.classList.add("on"); onPick(v); };
+    el.appendChild(b);
+  }
+}
+
+function openItemSheet(id) {
+  const it = month.items.find((x) => x.id === id); if (!it) return;
+  openItem = { id, kind: it.kind, day: it.day };
+  $("itemImg").src = `/img/${it.file}`;
+  seg($("itemKind"), Object.entries(KINDS).map(([k, l]) => [k, l.split("（")[0]]), it.kind, (v) => (openItem.kind = v));
+  seg($("itemDay"), [...month.days.map((d) => [d.iso, d.label]), [null, "なし"]], it.day, (v) => (openItem.day = v));
+  $("itemAmount").value = it.amount ?? "";
+  $("itemNote").value = it.note || "";
+  openSheet("itemSheet");
+}
+
+async function saveItem() {
+  if (!openItem) return;
+  const it = month.items.find((x) => x.id === openItem.id);
+  const raw = $("itemAmount").value.replace(/[^\d]/g, "");
+  const patch = { kind: openItem.kind, day: openItem.day, amount: raw ? Number(raw) : null, note: $("itemNote").value.trim() };
+  openItem = null;
+  if (!it || (patch.kind === it.kind && patch.day === it.day && patch.amount === it.amount && patch.note === (it.note || ""))) return;
+  try { month = await api(`/api/month/${cur}/items/${it.id}`, json("PATCH", patch)); render(); }
+  catch (e) { toast(e.message); }
+}
+$("itemDone").onclick = () => saveItem().finally(closeSheets);
+$("itemDel").onclick = async () => {
+  if (!openItem || !confirm("この領収書の写真を削除しますか？")) return;
+  const id = openItem.id; openItem = null;
+  try { month = await api(`/api/month/${cur}/items/${id}`, { method: "DELETE" }); render(); closeSheets(); }
+  catch (e) { toast(e.message); }
+};
+
+// ---------------------------------------------------------------- 送信
+$("sendBtn").onclick = async () => {
+  if (!settings.to) { toast("先に送り先メールアドレスを設定してください"); openSettings(); return; }
+  try {
+    busy(true, "準備中…");
+    const p = await api(`/api/month/${cur}/preview`);
+    $("pvTo").textContent = p.to;
+    $("pvCcRow").hidden = !p.cc; $("pvCc").textContent = p.cc;
+    $("pvSubject").textContent = p.subject;
+    $("pvBody").textContent = p.body;
+    $("pvSize").textContent = `添付 ${p.files.length} 枚・約 ${(p.bytes / 1024 / 1024).toFixed(1)} MB`;
+    const warn = [];
+    const missing = Object.keys(KINDS).filter((k) => !month.items.some((i) => i.kind === k)).map((k) => KINDS[k].split("（")[0]);
+    if (missing.length) warn.push(`未撮影：${missing.join("・")}`);
+    const nodate = month.items.filter((i) => !i.day).length;
+    if (nodate) warn.push(`日付が未入力の写真が ${nodate} 枚あります`);
+    if (month.sent.length) warn.push("この月はすでに送信済みです（もう一度送ります）");
+    if (p.mail_mode === "outbox") warn.push("メール送信の設定がまだ無いため、実際には送られずサーバーに保存されます（テスト）");
+    $("pvWarn").hidden = !warn.length; $("pvWarn").innerHTML = warn.map((w) => `・${w}`).join("<br>");
+    openSheet("sendSheet");
+  } catch (e) { toast(e.message); }
+  finally { busy(false); }
+};
+$("sendCancel").onclick = closeSheets;
+$("sendGo").onclick = async () => {
+  try {
+    busy(true, "送信中…");
+    const r = await api(`/api/month/${cur}/send`, { method: "POST" });
+    month = r.month; render(); closeSheets(); toast(r.result + " ✉");
+  } catch (e) { toast(e.message, 5000); }
+  finally { busy(false); }
+};
+
+// ---------------------------------------------------------------- 設定・通知
+function openSettings() {
+  $("setTo").value = settings.to || ""; $("setCc").value = settings.cc || ""; $("setName").value = settings.name || "";
+  $("mailMode").textContent = { smtp: "メール送信：SMTP で送ります", resend: "メール送信：Resend で送ります",
+    outbox: "メール送信：未設定（送信ボタンを押してもサーバーに保存するだけのテストモードです）" }[mailMode] || "";
+  openSheet("setSheet");
+}
+$("openSettings").onclick = openSettings;
+$("setClose").onclick = closeSheets;
+$("setSave").onclick = async () => {
+  try {
+    const r = await api("/api/settings", json("POST", { to: $("setTo").value, cc: $("setCc").value, name: $("setName").value }));
+    settings = r.settings; render(); closeSheets(); toast("保存しました");
+  } catch (e) { toast(e.message); }
+};
+
+function b64ToU8(s) {
+  const p = "=".repeat((4 - (s.length % 4)) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(b, (c) => c.charCodeAt(0));
+}
+$("pushOn").onclick = async () => {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window))
+      throw new Error("この端末では通知が使えません（iPhone はホーム画面に追加してから開いてください）");
+    if ((await Notification.requestPermission()) !== "granted") throw new Error("通知が許可されませんでした");
+    const reg = await navigator.serviceWorker.ready;
+    const { key } = await api("/api/push/key");
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(key) });
+    await api("/api/push/subscribe", json("POST", sub.toJSON()));
+    toast("通知を有効にしました");
+  } catch (e) { toast(e.message, 5000); }
+};
+$("pushTest").onclick = async () => { try { await api("/api/push/test", { method: "POST" }); toast("送りました"); } catch (e) { toast(e.message); } };
+
+$("prev").onclick = () => loadMonth(ymShift(cur, -1)).catch((e) => toast(e.message));
+$("next").onclick = () => loadMonth(ymShift(cur, 1)).catch((e) => toast(e.message));
+
+async function boot() {
+  try {
+    const me = await api("/api/me");
+    KINDS = me.kinds; settings = me.settings; mailMode = me.mail_mode;
+    $("app").hidden = false;
+    await loadMonth(cur || me.default_ym);
+  } catch (e) { if (e.message !== "ログインしてください") toast(e.message); }
+}
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "python server.py"
+healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"

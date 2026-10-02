@@ -1,0 +1,7 @@
+pillow
+requests
+fastapi
+uvicorn[standard]
+python-multipart
+apscheduler
+pywebpush

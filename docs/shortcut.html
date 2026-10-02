@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F5C4D">
+<link rel="icon" href="icon-192.png">
+<title>iPhone 全自動送信</title>
+<style>
+  :root { --bg: #F4F5F2; --card: #FFFFFF; --ink: #1D2421; --sub: #66706B; --line: #E1E4DF; --accent: #0F5C4D; --chip: #E7F1EE; --warn: #B4531A; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121614; --card: #1C211F; --ink: #E8ECE9; --sub: #9AA49F; --line: #2D3431; --accent: #3FB394; --chip: #1F3A33; --warn: #F0A06B; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.7;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    padding: env(safe-area-inset-top) 0 calc(40px + env(safe-area-inset-bottom)); }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 0 16px; }
+  a { color: var(--accent); }
+  h1 { font-size: 21px; margin: 18px 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  .lead { color: var(--sub); font-size: 14px; margin: 0 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+  ol { padding-left: 1.4em; margin: 0; }
+  li { margin: 8px 0; }
+  .act { display: inline-block; background: var(--chip); color: var(--accent); font-weight: 700; border-radius: 6px; padding: 0 6px; }
+  code { background: var(--chip); border-radius: 5px; padding: 1px 5px; font-size: 14px; }
+  .sub { color: var(--sub); font-size: 13px; }
+  .warn { color: var(--warn); font-size: 13px; }
+  .flow { font-size: 13px; color: var(--sub); }
+  .flow b { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p><a href="./">← アプリに戻る</a></p>
+  <h1>iPhone で全自動送信</h1>
+  <p class="lead">出張の翌日（火曜）の夜に、iPhone が勝手に「土曜 0 時〜今」の写真を文字認識し、「領収」と書かれた写真だけを添付してメールを送ります。iPhone 標準の「ショートカット」アプリで作ります（最初の 1 回だけ・15 分）。</p>
+
+  <div class="card">
+    <h2>しくみ</h2>
+    <div class="flow"><b>毎週火曜 20:00</b> に起動 → 今日が <b>4〜10 日</b>（＝第 1 土曜の後の火曜）でなければ終了 → 土曜 0 時以降の写真・スクショを集める → 1 枚ずつ文字認識して <b>「領収」</b> を含むものだけ残す → メールで送信</div>
+    <p class="sub">タクシーの紙の領収書の写真も、スマートEX・e5489 の領収書のスクリーンショットも「領収書」と書いてあるので両方拾えます。JR の領収書は火曜の 20 時までにスクショしておいてください。</p>
+  </div>
+
+  <div class="card">
+    <h2>準備</h2>
+    <ol>
+      <li>iPhone の「メール」アプリに、送信に使うアカウント（Yahoo・Gmail など）を設定しておく<br><span class="sub">設定 → アプリ → メール → メールアカウント</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>① ショートカットを作る</h2>
+    <p class="sub">ショートカット アプリ → 右上の「＋」→ 名前を「領収書を送る」に。下の検索欄でアクション名を入れて追加していきます。</p>
+    <ol>
+      <li><span class="act">現在の日付</span></li>
+      <li><span class="act">日付をフォーマット</span>：日付のフォーマット「カスタム」、形式 <code>d</code></li>
+      <li><span class="act">数字</span>：値に ② の「フォーマット済みの日付」を入れる</li>
+      <li><span class="act">もし</span>：「数字」が「次より小さい」<code>4</code> → 中に <span class="act">このショートカットを停止</span></li>
+      <li><span class="act">もし</span>：「数字」が「次より大きい」<code>10</code> → 中に <span class="act">このショートカットを停止</span><br><span class="sub">（ここまでで「第 1 土曜の後の火曜」以外は何もしない）</span></li>
+      <li><span class="act">日付を調整</span>：「現在の日付」から <code>3</code> 日を「減算」（＝土曜）</li>
+      <li><span class="act">日付をフォーマット</span>：上の日付を カスタム <code>yyyy/MM/dd</code></li>
+      <li><span class="act">入力から日付を取得</span>：上のテキスト（＝土曜 0 時）→ <span class="act">変数を設定</span> 名前 <code>開始</code></li>
+      <li><span class="act">写真を検索</span>：フィルタを追加<br>
+        ・「作成日」「が次の日付より後」→ 変数 <code>開始</code><br>
+        ・「メディアのタイプ」「が」「写真」<br>
+        <span class="sub">（スクリーンショットも「写真」に含まれます）</span></li>
+      <li><span class="act">各項目を繰り返す</span>（写真）→ 中に次の 3 つ：
+        <ol>
+          <li><span class="act">画像からテキストを抽出</span>（繰り返し項目）</li>
+          <li><span class="act">もし</span>：抽出したテキストが「次を含む」<code>領収</code></li>
+          <li>その中に <span class="act">変数に追加</span>：「繰り返し項目」を変数 <code>領収書</code> に</li>
+        </ol>
+      </li>
+      <li><span class="act">数</span>（項目数を取得）：変数 <code>領収書</code></li>
+      <li><span class="act">もし</span>：「数」が「次と等しい」<code>0</code> → 中に <span class="act">通知を表示</span>「領収書の写真が見つかりませんでした」と <span class="act">このショートカットを停止</span></li>
+      <li><span class="act">日付をフォーマット</span>：変数 <code>開始</code> を カスタム <code>yyyy年M月</code></li>
+      <li><span class="act">メールを送信</span>：
+        <br>・宛先：送り先のアドレス
+        <br>・件名：<code>【領収書】</code>＋上の「フォーマット済みの日付」＋<code> 出張分</code>
+        <br>・本文：<code>お疲れさまです。〇〇です。出張分の領収書（</code>「数」<code> 枚）を送付します。よろしくお願いいたします。</code>
+        <br>・添付：変数 <code>領収書</code>（本文の「＋」やアクションを展開して「添付ファイル」に入れる）
+        <br>・<b>「作成シートを表示」をオフ</b>にすると確認なしで送信されます
+      </li>
+    </ol>
+    <p class="warn">最初の月は「作成シートを表示」をオンにして、送る前に中身を確認するのがおすすめです。</p>
+  </div>
+
+  <div class="card">
+    <h2>② 毎週火曜に自動で動かす</h2>
+    <ol>
+      <li>ショートカット アプリ下の「オートメーション」→「＋」→「時刻」</li>
+      <li>時刻 <code>20:00</code>・繰り返し「毎週」・<b>火曜</b>だけ選ぶ</li>
+      <li>「すぐに実行」を選び、「実行時に通知」は好みで</li>
+      <li>次へ → 「領収書を送る」を選んで完了</li>
+    </ol>
+    <p class="sub">第 1 土曜の後の火曜は必ず 4〜10 日になるので、それ以外の週は ① の 4・5 で何もせずに終わります。</p>
+  </div>
+
+  <div class="card">
+    <h2>試し方</h2>
+    <ol>
+      <li>① の 4・5（日付チェック）を一時的に無効にし、6 の「3 日」を最近の日数にする</li>
+      <li>「作成シートを表示」をオン・宛先を自分にして ▶ で実行</li>
+      <li>領収書の写真だけが添付されているのを確認したら元に戻す</li>
+    </ol>
+  </div>
+
+  <p class="sub">手で選んで送りたいとき・金額やメモを付けたいときは、これまでどおりアプリから送れます。</p>
+</div>
+</body>
+</html>

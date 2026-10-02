@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0F5C4D">
 <link rel="icon" href="icon-192.png">
-<title>領収書を集める</title>
+<title>領収書を集めて送る</title>
 <style>
   :root { --bg: #F4F5F2; --card: #FFFFFF; --ink: #1D2421; --sub: #66706B; --line: #E1E4DF; --accent: #0F5C4D; --chip: #E7F1EE; --warn: #B4531A; }
   @media (prefers-color-scheme: dark) {
@@ -34,14 +34,14 @@
 <body>
 <div class="wrap">
   <p><a href="./">← アプリに戻る</a></p>
-  <h1>ボタン 1 つで集めて添付</h1>
-  <p class="lead">ボタンを押すと、出張期間（第 1 土曜〜月曜）の写真を iPhone が探して文字認識し、「領収」と書かれた写真だけを添付したメールの下書きを開きます。中身を見て「送信」を押すだけです。iPhone 標準の「ショートカット」アプリで作ります（最初の 1 回だけ・15 分）。</p>
+  <h1>ボタン 1 つで集めて送信</h1>
+  <p class="lead">ボタンを押すと、出張期間（第 1 土曜〜月曜）の写真を iPhone が探して文字認識し、「領収」と書かれた写真だけを添付して、そのままメールで送信します。iPhone 標準の「ショートカット」アプリで作ります（最初の 1 回だけ・15 分）。</p>
 
-  <p><a class="btn" href="shortcuts://run-shortcut?name=%E9%A0%98%E5%8F%8E%E6%9B%B8%E3%82%92%E9%9B%86%E3%82%81%E3%82%8B" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:12px;padding:14px;font-weight:700;text-decoration:none">📲 領収書を集める（作成後に使えます）</a></p>
+  <p><a class="btn" href="shortcuts://run-shortcut?name=%E9%A0%98%E5%8F%8E%E6%9B%B8%E3%82%92%E9%9B%86%E3%82%81%E3%82%8B" style="display:block;text-align:center;background:var(--accent);color:#fff;border-radius:12px;padding:14px;font-weight:700;text-decoration:none">📲 領収書を集めて送る（作成後に使えます）</a></p>
 
   <div class="card">
     <h2>しくみ</h2>
-    <div class="flow"><b>ボタンを押す</b> →「今月 / 先月」を選ぶ → その月の <b>第 1 土曜 0 時〜火曜 0 時</b> の写真と、<b>土曜以降のスクリーンショット</b>を集める → 1 枚ずつ文字認識して <b>「領収」</b> を含むものだけ残す → 宛先・件名・本文・添付が入った<b>メールの下書きが開く</b> → 確認して送信</div>
+    <div class="flow"><b>ボタンを押す</b> →「今月 / 先月」を選ぶ → その月の <b>第 1 土曜 0 時〜火曜 0 時</b> の写真と、<b>土曜以降のスクリーンショット</b>を集める → 1 枚ずつ文字認識して <b>「領収」</b> を含むものだけ残す → 「N 枚見つかりました。送信しますか？」で <b>送信</b> を押す → <b>そのままメール送信</b></div>
     <p class="sub">タクシーの紙の領収書の写真も、スマートEX・e5489 の領収書のスクリーンショットも「領収書」と書いてあるので両方拾えます。スクショは後日撮っても拾います。</p>
   </div>
 
@@ -88,15 +88,16 @@
       <li><span class="act">数</span>：<code>領収書</code> の項目数</li>
       <li><span class="act">もし</span>：「数」が「次と等しい」<code>0</code> → 中に <span class="act">通知を表示</span>「領収書の写真が見つかりませんでした」と <span class="act">このショートカットを停止</span></li>
     </ol>
-    <p class="sub"><b>D. メールの下書きを開く</b></p>
+    <p class="sub"><b>D. 送信</b></p>
     <ol start="13">
       <li><span class="act">日付をフォーマット</span>：<code>土曜</code> を カスタム <code>yyyy年M月</code></li>
+      <li><span class="act">確認を要求</span>：メッセージ <code>領収書が</code>「数」<code>枚見つかりました。送信しますか？</code><span class="sub">（キャンセルを押すと止まる。確認もいらなければこのアクションは省略）</span></li>
       <li><span class="act">メールを送信</span>：
         <br>・宛先：送り先のアドレス
         <br>・件名：<code>【領収書】</code>＋↑のフォーマット済みの日付＋<code> 出張分</code>
         <br>・本文：<code>お疲れさまです。〇〇です。出張分の領収書（</code>「数」<code>枚）を送付します。よろしくお願いいたします。</code>
         <br>・添付ファイル：<code>領収書</code>
-        <br>・<b>「作成シートを表示」はオンのまま</b>（下書きが開いて、自分で送信を押す）
+        <br>・<b>「作成シートを表示」をオフ</b>にする（これでメール画面を開かずにすぐ送信されます）
       </li>
     </ol>
   </div>
@@ -108,7 +109,7 @@
       <li>ホーム画面に直接置くなら：ショートカットを長押し →「共有」→「ホーム画面に追加」</li>
       <li>初回は「写真へのアクセス」「メール」の許可を聞かれるので「許可」</li>
     </ol>
-    <p class="sub">写真が多いと文字認識に数十秒かかります。暗い・斜めの写真は外れることがあるので、下書きの添付枚数を確認してください。</p>
+    <p class="sub">写真が多いと文字認識に数十秒かかります。暗い・斜めの写真は外れることがあるので、最初の 1 回は宛先を自分にして試すと安心です。</p>
   </div>
 
   <p class="sub">手で選んで送りたいとき・金額やメモを付けたいときは、これまでどおりアプリから送れます。</p>
